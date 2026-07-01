@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Clima y Geolocalización Avanzada</title>
+    
+    <!-- Incluimos Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- INICIO DE LA CORRECCIÓN: Estilos CSS para el reset de márgenes -->
+    <style>
+        /* Regla crítica para asegurar que la aplicación ocupe el 100% del viewport */
+        html, body, #root {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            /* min-height: 100vh asegura que el fondo se extienda en altura */
+            min-height: 100vh; 
+        }
+        /* Opcional: Establecer la fuente base para la aplicación */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+    <!-- FIN DE LA CORRECCIÓN -->
+    
+  </head>
+  <body>
+    <!-- El contenedor #root ahora ocupará el 100% del ancho del navegador -->
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
