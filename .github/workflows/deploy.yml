@@ -13,16 +13,23 @@ jobs:
   deploy:
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }} # <-- CORREGIDO: Cambiado ':' por '.'
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    
+    # --- AQUÍ ESTÁ LA SOLUCIÓN: Permisos obligatorios para GitHub Pages ---
+    permissions:
+      contents: write
+      id-token: write
+      pages: write
+
     steps:
       - name: Checkout Código
         uses: actions/checkout@v4
 
-      - name: Configurar Node.js
+      - name: Configurar Node.js (Actualizado a LTS Estable)
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22 # <-- Cambiado a Node 22 para evitar avisos de depreciación
           cache: 'npm'
 
       - name: Instalar Dependencias
@@ -39,5 +46,3 @@ jobs:
       - name: Desplegar en GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
