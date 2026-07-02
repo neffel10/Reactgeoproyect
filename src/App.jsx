@@ -9,7 +9,7 @@ import CityDetailPage from '/pages/CityDetailPage';
 const App = () => {
   return (
     // BrowserRouter: Permite la navegación en la SPA
-    <BrowserRouter>
+    <BrowserRouter basename="/Reactgeoproyect">
       <div className="App w-full min-h-screen">
         {/* Routes: Contenedor para todas las definiciones de ruta */}
         <Routes>
@@ -26,8 +26,13 @@ const App = () => {
           {/* Ruta de fallback: 404 */}
           <Route path="*" element={<h1 className="text-4xl text-center mt-20">404 - Página no encontrada</h1>} />
         </Routes>
+        <p id="cfooter" className="cfooter">
+          Alessandro Torres 2025 v.1.0 |
+          <a href="https://www.espaciopsicologico.mx/alessandro">&nbsp;Portfolio</a>
+        </p>
       </div>
     </BrowserRouter>
+    
   );
 };
 

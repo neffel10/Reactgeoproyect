@@ -21,32 +21,27 @@ const Search = ({ onSearchCity }) => {
         onSearchCity(searchTerm.trim());
         setSearchTerm(''); // Limpiar el input para una nueva búsqueda
     } else {
-        console.log("El campo de búsqueda está vacío o la función onSearchCity no fue proporcionada.");
+        console.log("The field is empty or the function onSearchCity was not provided.");
     }
   };
 
   return (
     <form 
         onSubmit={handleSubmit} 
-        // Estilos Tailwind para el formulario
-        className="flex space-x-3 w-full max-w-lg mx-auto"
-    >
-      <input
-        type="text"
-        placeholder="Enter a city name..."
-        value={searchTerm}
-        onChange={handleInputChange}
-        // Estilos Tailwind para el input
-        className="flex-grow p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition duration-150 bg-black-200"
-      />
-      <button 
-        type="submit"
-        // Estilos Tailwind para el botón
-        className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition duration-150 transform hover:scale-105"
-        >
-          Search Weather
-      </button>
-    </form>
+        class="flex flex-col sm:flex-row gap-3 w-full max-w-lg mx-auto">
+  <input 
+    placeholder="Enter a city name..." 
+    class="flex-grow p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition duration-150 bg-black-200" 
+    type="text" 
+    value=""
+  />
+  <button 
+    type="submit" 
+    class="shrink-0 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition duration-150 transform hover:scale-105"
+  >
+    Search Weather
+  </button>
+</form>
   );
 };
 

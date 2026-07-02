@@ -251,22 +251,22 @@ const HomePage = () => {
                             {/* Detalles Adicionales */}
                             <div className="grid grid-cols-3 gap-4 mt-8 pt-4 border-t border-gray-200 text-gray-700">
                                 <div>
-                                    <p className="text-sm font-medium">Viento</p>
+                                    <p className="text-sm font-medium">Wind</p>
                                     <p className="font-bold">{windSpeed.toFixed(1)} m/s</p>
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium">Humedad</p>
+                                    <p className="text-sm font-medium">Humidity</p>
                                     <p className="font-bold">{humidity}%</p>
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium">Presión</p>
+                                    <p className="text-sm font-medium">Pressure</p>
                                     <p className="font-bold">{pressure} hPa</p>
                                 </div>
                             </div>
                             
                             <p className="mt-8 text-md text-gray-500 border-t pt-4">
                                 {/* Haz clic en la tarjeta para el pronóstico de 5 días. */}
-                                Clic in the card to see the weather for the next 5 days.
+                                Click on the card to see the weather for the next 5 days.
                             </p>
                         </div>
                     )}
