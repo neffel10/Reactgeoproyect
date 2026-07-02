@@ -3,9 +3,8 @@ name: Deploy Review Lab to GitHub Pages
 on:
   push:
     branches:
-      - main # o 'master' (asegúrate de que sea el nombre de tu rama principal)
+      - main # o 'master' (asegúrate de que coincida con tu rama principal)
 
-# Cancela despliegues previos si haces varios pushes seguidos
 concurrency:
   group: "pages"
   cancel-in-progress: true
@@ -14,7 +13,7 @@ jobs:
   deploy:
     environment:
       name: github-pages
-      url: ${{ steps: deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url }} # <-- CORREGIDO: Cambiado ':' por '.'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Código
@@ -35,7 +34,7 @@ jobs:
       - name: Subir Artifact de Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './dist' # Apunta a la carpeta que genera Vite
+          path: './dist'
 
       - name: Desplegar en GitHub Pages
         id: deployment
