@@ -33,7 +33,8 @@ const Search = ({ onSearchCity }) => {
     placeholder="Enter a city name..." 
     class="flex-grow p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition duration-150 bg-black-200" 
     type="text" 
-    value=""
+    value={searchTerm}
+    onChange={handleInputChange}
   />
   <button 
     type="submit" 
