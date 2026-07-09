@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
-// ** CLAVE API: Reutilizamos la misma clave **
-const API_KEY = 'acdd42a06d211c22f9c59ab85e650601'; 
+// ** API KEY reutilized **
+const API_KEY = import.meta.env.VITE_WEATHER_API_KEY;
 
-// Función auxiliar para manejar errores de la API
+// Auxiliary function to handle API errors
 const handleApiError = (response) => {
     if (response.status === 401) {
         throw new Error(`Error 401: Invalid API Key. Check your OWM key.`);
@@ -14,26 +14,26 @@ const handleApiError = (response) => {
     }
 };
 
-// Función auxiliar para obtener la URL del icono
+// Auxiliary function to get the icon URL
 const getWeatherIconUrl = (iconCode) => {
     if (!iconCode) return null;
     return `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
 };
 
 const CityDetailPage = () => {
-    // 1. Obtener el nombre de la ciudad de la URL
+    // 1. Get the city name from the URL
     const { cityName } = useParams();
     const navigate = useNavigate();
 
-    // 2. Estados para manejar los datos
+    // 2. States to manage data
     const [cityData, setCityData] = useState(null); 
     const [weatherData, setWeatherData] = useState(null); 
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // --- FUNCIÓN FASE 2: Obtener el Clima usando Coordenadas ---
+    // --- FUNCTION PHASE 2: Get Weather using Coordinates ---
     const fetchWeather = useCallback(async (lat, lon) => {
-        // Usamos la API /forecast de 5 días / 3 horas
+        // Use the API endpoint for 5-day/3-hour forecast
         const weatherUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&lang=es&appid=${API_KEY}`;
         
         try {
@@ -47,7 +47,7 @@ const CityDetailPage = () => {
         }
     }, []); 
 
-    // --- FUNCIÓN FASE 1: Obtener Coordenadas y luego el Clima ---
+    // --- FUNCTION PHASE 1: Get Coordinates and then Weather ---
     const fetchCoordinatesAndWeather = useCallback(async () => {
         if (!cityName) {
             setError("Error: Not city name specified.");
@@ -60,13 +60,13 @@ const CityDetailPage = () => {
         setCityData(null); 
         setWeatherData(null); 
         
-        // Decodificar el nombre por si tiene espacios (e.g., "New%20York")
+        // Decode the city name in case it has spaces (e.g., "New%20York")
         const decodedCityName = decodeURIComponent(cityName);
 
         const geocodingUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${decodedCityName}&limit=1&appid=${API_KEY}`;
         
         try {
-            // FASE 1: Obtener Coordenadas
+            // PHASE 1: Get Coordinates
             const coordResponse = await fetch(geocodingUrl);
             handleApiError(coordResponse);
             
@@ -85,7 +85,7 @@ const CityDetailPage = () => {
             };
             setCityData(newCityData);
             
-            // FASE 2: Llamar a la función de clima
+            // PHASE 2: Call the weather function
             await fetchWeather(newCityData.lat, newCityData.lon);
 
         } catch (err) {
@@ -96,43 +96,43 @@ const CityDetailPage = () => {
         }
     }, [cityName, fetchWeather]); 
 
-    // 3. Ejecutar la función al cargar el componente o cambiar la ciudad
+    // 3. Run the function when the component loads or when the city changes
     useEffect(() => {
         fetchCoordinatesAndWeather();
     }, [fetchCoordinatesAndWeather]); 
     
-    // Función para procesar el pronóstico de 3 horas a pronóstico diario (Máx y Mín)
+    // This function takes the 3-hour forecast list and returns an array of daily forecasts with max and min temperatures
     const getDailyForecast = (forecastList) => {
-        const dailyData = {}; // Usaremos un objeto para agrupar por fecha
+        const dailyData = {}; // wE'll use an object to group by date
         
         forecastList.forEach(item => {
-            // Formatear la fecha a YYYY-MM-DD
+            // Format the date to YYYY-MM-DD
             const date = item.dt_txt.split(' ')[0]; 
             const temp = item.main.temp;
             const description = item.weather[0].description;
             const icon = item.weather[0].icon;
 
             if (!dailyData[date]) {
-                // Si es el primer dato del día
+                // If it's the first data point of the day, initialize it
                 dailyData[date] = {
                     min: temp,
                     max: temp,
                     description: description,
                     icon: icon,
-                    timestamp: item.dt // Guardar el timestamp para ordenar
+                    timestamp: item.dt // Save the timestamp for sorting later
                 };
             } else {
-                // Actualizar las temperaturas Máx y Mín
+                // Update min and max temperatures for the day
                 dailyData[date].min = Math.min(dailyData[date].min, temp);
                 dailyData[date].max = Math.max(dailyData[date].max, temp);
             }
         });
         
-        // Convertir el objeto a un array y ordenar por fecha
+        // Convert the object to an array and sort by date, then return only the first 5 days
         return Object.values(dailyData).sort((a, b) => a.timestamp - b.timestamp).slice(0, 5);
     };
 
-    // --- Renderizado ---
+    // --- Rendering ---
 
     if (isLoading) {
         return (
@@ -181,7 +181,7 @@ const CityDetailPage = () => {
                     5-Day Forecast 
                </p>
 
-                {/* Grid para el Pronóstico Diario */}
+                {/* Grid for Daily Forecasts */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-6">
                     {dailyForecasts.map((day, index) => (
                         <div 
@@ -189,7 +189,7 @@ const CityDetailPage = () => {
                             className="bg-white p-6 rounded-xl shadow-xl border-t-4 border-blue-500 flex flex-col items-center transform hover:scale-[1.03] transition duration-200"
                         >
                             <h3 className="text-lg font-bold text-gray-700 mb-4">
-                                {/* Usamos Intl.DateTimeFormat para mostrar el día de la semana */}
+                                {/* Use Intl.DateTimeFormat to display the day of the week */}
                                 {new Intl.DateTimeFormat('es-ES', { weekday: 'short' }).format(new Date(day.timestamp * 1000))}
                             </h3>
                             
@@ -212,7 +212,7 @@ const CityDetailPage = () => {
                     ))}
                 </div>
 
-                {/* Mostrar la hora de la ciudad para demostrar datos adicionales */}
+                {/* Show the city's time to demonstrate additional data */}
                 <div className="mt-12 text-center text-gray-600 border-t pt-6">
                     <p>Data provided by OpenWeatherMap.</p>
                 </div>

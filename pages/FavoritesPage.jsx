@@ -1,8 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import useFavorites from '../hooks/useFavorites';
-import FavoriteCityCard from '../components/FavoriteCityCard'; // <-- Importación CLAVE
-import { Home } from 'lucide-react'; // Icono
+import FavoriteCityCard from '../components/FavoriteCityCard'; // <-- Key import
+import { Home } from 'lucide-react'; // 
 
 const FavoritesPage = () => {
     const { favorites, removeFavorite } = useFavorites();
@@ -23,8 +23,8 @@ const FavoritesPage = () => {
                     My Favorite Cities ({favorites.length})
                 </h1>
 
-                {favorites.length === 0 ? (
-                    // Mostrar este mensaje si la lista está vacía
+                {favorites.length === 0 ? (             
+                    // Show this message if the list is empty
                     <div className="text-center p-12 bg-white rounded-xl shadow-lg border-2 border-dashed border-gray-300">
                         <p className="text-xl text-gray-600 font-semibold mb-4">
                             ¡You dont have favorite cities yet!
@@ -34,16 +34,16 @@ const FavoritesPage = () => {
                         </p>
                     </div>
                 ) : (
-                    // Mostrar la lista de tarjetas
+                    // Show the list of favorite cities if there are any
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {favorites.map((city) => (
                             <FavoriteCityCard 
-                                // La clave es importante para la eficiencia de React
+                                // The key is important for React's efficiency
                                 key={`${city.name}-${city.country}`} 
                                 city={city} 
-                                // Pasamos la función de eliminar al componente hijo
+                                // We pass the remove function to the child component
                                 onRemove={() => removeFavorite(city.name)}
-                                // Pasamos la función de navegación al componente hijo
+                                // We pass the navigation function to the child component
                                 onCardClick={() => navigate(`/city/${encodeURIComponent(city.name)}`)}
                             />
                         ))}

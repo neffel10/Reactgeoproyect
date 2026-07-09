@@ -1,55 +1,56 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Search from '../components/Search';
-import useFavorites from '../hooks/useFavorites'; // <-- Importación del Hook
-import { Heart, HeartCrack } from 'lucide-react'; // Iconos para Favoritos
+import useFavorites from '../hooks/useFavorites';
+import { Heart } from 'lucide-react';
+import { useDebounce } from '../hooks/useDebounce';
 
-// ** CLAVE API INSERTADA **
-const API_KEY = 'acdd42a06d211c22f9c59ab85e650601'; 
+// ** API INSERTED **
+
+const API_KEY = import.meta.env.VITE_WEATHER_API_KEY;
 
 const HomePage = () => {
-    const navigate = useNavigate(); //React Router DOM Hook to manage paths (like ajax)
-    //"Resumen: Dame la herramienta que necesito para saltar a otra página cuando yo lo decida en mi código."
-    
-    // 1. Hook de Favoritos 
-    //Esto es desestructuración, es una característica de JavaScript que te permite extraer propiedades específicas de un objeto y asignarlas a variables con el mismo nombre.
+    const navigate = useNavigate();
+
+    // 1. Favorites Hook 
     const { isFavorite, addFavorite, removeFavorite } = useFavorites();
 
-    // 2. Estados para el Clima y Búsqueda
+    // 2. Weather and Search States
+    const [searchTerm, setSearchTerm] = useState('');
+    const [cityData, setCityData] = useState(null);
+    const [weatherData, setWeatherData] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
 
-    /* Almacenar las coordenadas y nombre de la ciudad buscada (Fase 1 de la API). */
-    /* Almacenar los resultados de la API de Clima (Fase 2 de la API). */
-    /* Controlar si se debe mostrar un spinner de carga al usuario. */
-    /* Almacenar y mostrar mensajes de error al usuario. */
-    const [cityData, setCityData] = useState(null);  
-    const [weatherData, setWeatherData] = useState(null); 
-    const [isLoading, setIsLoading] = useState(false); 
-    const [error, setError] = useState(null); 
+    const cacheRef = useRef({});
+    const lastRequestedRef = useRef('');
+    const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
-    /*IMPORTANTE| useState: Son básicamente variables dinámicas que una vez que les das o mandas un valor lo toma y le dicen a React que lo rendericen*/
+    /*IMPORTANTE| useState: Son básicamente variables dinámicas que una vez que les das o mandas un valor lo toma y le dicen a React que lo rendericen*/ 
+    /*useState: is basically a way to have dynamic variables in React components*/ 
 
-    // Función auxiliar para obtener la URL del icono, esto es util si por ejemplo la API cambia su estilo de urls, desde aqui podemos hacer ajustes, ademas, sirve para encapsular en una variabla la url en lugar de en todo el codigo estar escribiendo la url toda larga.
+    //Function to get the weather icon URL, useful if the API changes its URL style, we can make adjustments here. Also, it serves to encapsulate the URL in a variable instead of writing the long URL throughout the code.
     const getWeatherIconUrl = (iconCode) => {
         if (!iconCode) return null;
         return `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
     };
 
-    // Función para manejar errores comunes de la API, es mas que nada para codigo limpio pero tambien para manejar errores comunes en menos lineas que hacerlo especificamente para cada tipo de error.
+    // Function to handle common API errors, mainly for cleaner code but also to handle common errors in fewer lines than doing it specifically for each type of error.
     const handleApiError = (response) => {
         if (response.status === 401) {
-            throw new Error(`Error 401: Clave API Inválida. Revisa tu clave OWM.`);
+            throw new Error(`Error 401: Invalid API Key. Check your OWM API key.`);
         }
         if (!response.ok) {
             throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
         }
     };
     
-    // Función para alternar el estado de favorito
+    // Function to toggle the favorite state
     const handleToggleFavorite = () => {
-        //Clausula de guardia: ohh, basicamente es que si ya tenemos dato de la ciudad, proceda a mostrar el boton de añadir a favorito, pero si no, no lo hace, de esa manera evitamos que se muestre aunque demos mal la ciudad o no la tengamos. return es salir de la funcion
+        //Guard Clause: basically, if we already have city data, it proceeds to show the add to favorite button, but if not, it doesn't, thus avoiding showing it even if we give the wrong city or don't have it. return is to exit the function
         if (!cityData) return;
 
-        // Crear el objeto de ciudad con los datos necesarios para guardar
+        // Create the city object with the necessary data to save
         const cityToSave = {
             name: cityData.name,
             country: cityData.country,
@@ -57,60 +58,80 @@ const HomePage = () => {
             lon: cityData.lon,
         };
 
-        //Logica de Alternancia (toggle)
+        //Logica de Alternancia (toggle) //Alternating Logic (toggle)
         if (isFavorite(cityData.name)) {
             removeFavorite(cityData.name);
-            console.log("Ciudad eliminada de favoritos:", cityData.name);
+            console.log("City removed from favorites:", cityData.name);
         } else {
             addFavorite(cityToSave);
-            console.log("Ciudad añadida a favoritos:", cityData.name);
+            console.log("City added to favorites:", cityData.name);
         }
     };
 
 
-    // --- FUNCIÓN FASE 2: Obtener el Clima usando Coordenadas ---
-    const fetchWeather = useCallback(async (lat, lon) => {
+    // --- FUNCTION PHASE 2: Get the Weather using Coordinates ---
+    const fetchWeather = useCallback(async (lat, lon, cityName) => {
+        const cacheKey = `${cityName}-${lat}-${lon}`.toLowerCase();
+        const cachedWeatherData = cacheRef.current[cacheKey];
+
+        if (cachedWeatherData) {
+            setWeatherData(cachedWeatherData);
+            return cachedWeatherData;
+        }
+
         const weatherUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&lang=es&appid=${API_KEY}`;
-        
+
         try {
             const response = await fetch(weatherUrl);
             handleApiError(response);
-            
-            const data = await response.json();
-            setWeatherData(data); 
-            
-        } catch (err) {
-            console.error("Error al obtener el pronóstico:", err);
-            setError(`Fallo al obtener el clima: ${err.message}`);
-            setWeatherData(null);
-            setCityData(null); 
-        }
-    }, []); 
 
-    // --- FUNCIÓN FASE 1: Obtener Coordenadas y luego el Clima ---
+            const data = await response.json();
+            cacheRef.current[cacheKey] = data;
+            setWeatherData(data);
+            return data;
+
+        } catch (err) {
+            console.error("Error fetching weather data:", err);
+            setError(`Failed to fetch weather data: ${err.message}`);
+            setWeatherData(null);
+            setCityData(null);
+            return null;
+        }
+    }, []);
+
+    // --- FUNCTION PHASE 1: Get Coordinates and then the Weather ---
     const fetchCoordinates = useCallback(async (cityName) => {
+        const normalizedCityName = cityName.trim();
+        const cacheKey = normalizedCityName.toLowerCase();
+
+        if (cacheRef.current[cacheKey]) {
+            const cachedResult = cacheRef.current[cacheKey];
+            setCityData(cachedResult.cityData);
+            setWeatherData(cachedResult.weatherData);
+            setError(null);
+            setIsLoading(false);
+            return;
+        }
+
         // Reiniciar estados para la nueva búsqueda
         setIsLoading(true);
         setError(null);
-        setCityData(null); 
-        setWeatherData(null); 
+        setCityData(null);
+        setWeatherData(null);
 
-        const geocodingUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${cityName}&limit=1&appid=${API_KEY}`;
-        
+        const geocodingUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${normalizedCityName}&limit=1&appid=${API_KEY}`;
+
         try {
             const response = await fetch(geocodingUrl);
             handleApiError(response);
-            
+
             const data = await response.json();
-            
+
             if (data.length === 0) {
-                throw new Error(`Results not found for: ${cityName}`);
+                throw new Error(`Results not found for: ${normalizedCityName}`);
             }
 
-        
-            const result = data[0]; //esto es solo para acceder a 1 resultado de las busquedas, porque por ejemplo si buscamos London, puede darnos London, London, UK, London, philipines, etc.
-            
-            //newCityData sirve para solo tomar los valores que necesitamos ya que la API podria darme 20 propiedades donde 15 son innecesarias.
+            const result = data[0];
             const newCityData = {
                 lat: result.lat,
                 lon: result.lon,
@@ -118,24 +139,67 @@ const HomePage = () => {
                 country: result.country
             };
 
-            //Actualiza los valores del estado con los nuevos.
             setCityData(newCityData);
-            
-            // Llamar a la función de clima (Fase 2)
-            await fetchWeather(newCityData.lat, newCityData.lon);
+
+            const weatherResult = await fetchWeather(newCityData.lat, newCityData.lon, newCityData.name);
+            cacheRef.current[cacheKey] = {
+                cityData: newCityData,
+                weatherData: weatherResult,
+            };
 
         } catch (err) {
-            console.error("Error en la geocodificación:", err);
+            console.error("Error fetching coordinates:", err);
             setError(`Error: ${err.message}`);
             setCityData(null);
             setWeatherData(null);
         } finally {
             setIsLoading(false);
         }
-    }, [fetchWeather]); 
+    }, [fetchWeather]);
 
+    const handleSearchSubmit = useCallback((term) => {
+        const normalizedTerm = term.trim();
+        if (!normalizedTerm) return;
+
+        setSearchTerm(normalizedTerm);
+        lastRequestedRef.current = normalizedTerm.toLowerCase();
+        fetchCoordinates(normalizedTerm);
+    }, [fetchCoordinates]);
+
+    useEffect(() => {
+    const normalizedTerm = debouncedSearchTerm.trim().toLowerCase();
     
-    // Función para manejar el clic en la tarjeta (Navegación)
+    if (!normalizedTerm) {
+        setError(null);
+        setIsLoading(false);
+        return;
+    }
+
+    // If it matches the last requested term, we cancel duplicate requests
+    if (lastRequestedRef.current === normalizedTerm) {
+        return;
+    }
+
+    // If it's already in the cache, we assign it directly without calling fetchCoordinates
+    if (cacheRef.current[normalizedTerm]) {
+        const cachedResult = cacheRef.current[normalizedTerm];
+        setCityData(cachedResult.cityData);
+        setWeatherData(cachedResult.weatherData);
+        setError(null);
+        setIsLoading(false);
+        lastRequestedRef.current = normalizedTerm;
+        return;
+    }
+
+    // We register the active request and trigger the physical search
+    lastRequestedRef.current = normalizedTerm;
+    fetchCoordinates(debouncedSearchTerm.trim());
+
+// We remove fetchCoordinates from the dependencies to isolate the effect from infinite executions
+// eslint-disable-next-line react-hooks/exhaustive-deps
+}, [debouncedSearchTerm]);
+
+    // Function to handle the click on the card (Navigation)
     const handleCardClick = () => {
         if (cityData) {
             // Navigates to a dynamic path like "/city/Hermosillo"
@@ -143,9 +207,9 @@ const HomePage = () => {
         }
     };
 
-    // Ajustes en la renderización para usar los datos de /forecast (list[0])
-    // Los ? son una manera de comprobar mas corta que a como se hacia antes con && o OR ||
-    const currentForecast = weatherData?.list?.[0]; // El primer elemento es el clima más cercano
+    // Adjustments in rendering to use data from /forecast (list[0])
+    // NOTA PROPIA:Los ? son una manera de comprobar mas corta que a como se hacia antes con && o OR ||
+    const currentForecast = weatherData?.list?.[0]; // The first item in the forecast list is the current weather
     const temp = currentForecast?.main?.temp;
     const weatherDescription = currentForecast?.weather?.[0]?.description;
     const weatherIcon = currentForecast?.weather?.[0]?.icon;
@@ -153,18 +217,17 @@ const HomePage = () => {
     const humidity = currentForecast?.main?.humidity;
     const pressure = currentForecast?.main?.pressure;
     
-    // Determinar si la ciudad actual es favorita para mostrar el icono correcto
+    // Determining if the current city is a favorite to show the correct icon
     const isCurrentCityFavorite = cityData ? isFavorite(cityData.name) : false;
 
     return (
         <div className="min-h-screen bg-blue-200 py-12 px-4 sm:px-6 lg:px-8 shadow-lg">
             <div className="max-w-xl mx-auto bg-white pt-12 pl-8 pr-8 pb-12 rounded-2xl shadow-xl">
                 <h1 className="text-4xl font-extrabold text-pink-500 text-center mb-10">
-                    {/* Clima y Geolocalización Avanzada */}
                     Weather & Advanced Geolocalization
                 </h1>
                 
-                {/* Botón de Navegación a Favoritos */}
+                {/* Navigation to Favorites Button */}
                 <div className="text-center mb-8">
 
                 <button
@@ -177,11 +240,15 @@ const HomePage = () => {
 
                 </div>
                 
-                <Search onSearchCity={fetchCoordinates} />
+                <Search
+                    searchTerm={searchTerm}
+                    onSearchTermChange={setSearchTerm}
+                    onSearchSubmit={handleSearchSubmit}
+                />
 
                 <div className="text-center p-6 bg-transparent rounded-xl">
                     {isLoading && (
-                        // Indicador de carga
+                        // Loading Spinner and Message
                         <div className="flex justify-center items-center space-x-2 text-blue-600">
                             <svg className="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24">
                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -192,30 +259,30 @@ const HomePage = () => {
                     )}
 
                     {error && (
-                        // Mensaje de error
+                        // Error Message Display
                         <div className="p-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded-md">
                             <p className="font-bold">Search Failed</p>
                             <p>{error}</p>
                         </div>
                     )}
 
-                    {/* ** Mostrar Resultado Final del Clima ** */}
+                    {/* ** Final Weather Result ** */}
                     {cityData && currentForecast && !isLoading && (
                         <div 
                             className="bg-gradient-to-br from-blue-100 to-white p-8 rounded-lg shadow-2xl max-w-lg mx-auto border-t-4 border-blue-500 cursor-pointer 
-                                       transform transition duration-300 hover:scale-[1.05] hover:shadow-xl relative group" // Añadimos 'relative group'
-                            // El clic principal navega a la vista de detalle
+                                       transform transition duration-300 hover:scale-[1.05] hover:shadow-xl relative group" // Add 'relative group'
+                            // The main clic navigates to the city detail page, but the favorite button is absolute and stops propagation
                             onClick={handleCardClick} 
                         >
-                            {/* Botón de Favoritos (Absoluto) */}
+                            {/* Favorites Button (Absolute) */}
                             <button
                                 className="absolute top-3 right-3 p-2 rounded-full bg-white/70 backdrop-blur-sm shadow-md 
                                            transition duration-150 hover:bg-white z-10"
                                 onClick={(e) => {
-                                    e.stopPropagation(); // Previene que el clic navegue a la vista de detalle
+                                    e.stopPropagation(); // PREVENTS the click from navigating to the detail view
                                     handleToggleFavorite();
                                 }}
-                                title={isCurrentCityFavorite ? "Eliminar de Favoritos" : "Añadir a Favoritos"}
+                                title={isCurrentCityFavorite ? "Delete from Favorites" : "Add to Favorites"}
                             >
                                 {isCurrentCityFavorite ? (
                                     <Heart className="w-6 h-6 text-pink-500 fill-pink-500" />
@@ -228,7 +295,7 @@ const HomePage = () => {
                             <p className="text-lg text-gray-500 mb-6">Actual Weather (Clic for more details)</p>
 
                             <div className="flex items-center justify-center space-x-6">
-                                {/* Icono y Temperatura */}
+                                {/* Icon and Temperature */}
                                 {weatherIcon && (
                                     <div className={`rounded-full ${weatherIcon.endsWith('n') ? 'bg-blue-900/50' : 'bg-transparent'}`}>
                                     <img 
@@ -248,7 +315,7 @@ const HomePage = () => {
                                 </div>
                             </div>
 
-                            {/* Detalles Adicionales */}
+                            {/* Additional Details */}
                             <div className="grid grid-cols-3 gap-4 mt-8 pt-4 border-t border-gray-200 text-gray-700">
                                 <div>
                                     <p className="text-sm font-medium">Wind</p>
@@ -264,8 +331,7 @@ const HomePage = () => {
                                 </div>
                             </div>
                             
-                            <p className="mt-8 text-md text-gray-500 border-t pt-4">
-                                {/* Haz clic en la tarjeta para el pronóstico de 5 días. */}
+                            <p className="mt-8 text-md text-gray-500 border-t pt-4">                    
                                 Click on the card to see the weather for the next 5 days.
                             </p>
                         </div>

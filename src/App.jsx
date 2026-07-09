@@ -8,23 +8,24 @@ import CityDetailPage from '/pages/CityDetailPage';
 
 const App = () => {
   return (
-    // BrowserRouter: Permite la navegación en la SPA
+    // BrowserRouter: Allows navigation in the SPA
     <BrowserRouter basename="/Reactgeoproyect">
       <div className="App w-full min-h-screen">
-        {/* Routes: Contenedor para todas las definiciones de ruta */}
+        {/* Routes: Container for all route definitions */}
+
         <Routes>
           
-          {/* Ruta principal: / */}
+          {/* Main path: / */}
           <Route path="/" element={<HomePage />} />
           
-          {/* Ruta de favoritos: /favorites */}
+          {/* Favorites path: /favorites */}
           <Route path="/favorites" element={<FavoritesPage />} />
           
-          {/* Ruta dinámica: /city/nombre-ciudad (usando el parámetro :cityName) */}
+          {/* Dynamic path: /city/nombre-ciudad (using the parameter :cityName) */}
           <Route path="/city/:cityName" element={<CityDetailPage />} />
           
-          {/* Ruta de fallback: 404 */}
-          <Route path="*" element={<h1 className="text-4xl text-center mt-20">404 - Página no encontrada</h1>} />
+          {/* Fallback path: 404 */}
+          <Route path="*" element={<h1 className="text-4xl text-center mt-20">404 - Page not found</h1>} />
         </Routes>
         <p id="cfooter" className="cfooter">
           Alessandro Torres 2025 v.1.0 |
