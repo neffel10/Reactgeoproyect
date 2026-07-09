@@ -7,7 +7,7 @@ import { useDebounce } from '../hooks/useDebounce';
 
 // ** API INSERTED **
 
-const API_KEY = import.meta.env.VITE_WEATHER_API_KEY;
+const API_KEY = import.meta.env.VITE_WEATHER_API_KEY || '';
 
 const HomePage = () => {
     const navigate = useNavigate();
@@ -71,6 +71,14 @@ const HomePage = () => {
 
     // --- FUNCTION PHASE 2: Get the Weather using Coordinates ---
     const fetchWeather = useCallback(async (lat, lon, cityName) => {
+        if (!API_KEY) {
+            setError('La API key de OpenWeather no está configurada. Añádela como secreto en GitHub y vuelve a desplegar.');
+            setWeatherData(null);
+            setCityData(null);
+            setIsLoading(false);
+            return null;
+        }
+
         const cacheKey = `${cityName}-${lat}-${lon}`.toLowerCase();
         const cachedWeatherData = cacheRef.current[cacheKey];
 
@@ -101,6 +109,14 @@ const HomePage = () => {
 
     // --- FUNCTION PHASE 1: Get Coordinates and then the Weather ---
     const fetchCoordinates = useCallback(async (cityName) => {
+        if (!API_KEY) {
+            setError('La API key de OpenWeather no está configurada. Añádela como secreto en GitHub y vuelve a desplegar.');
+            setWeatherData(null);
+            setCityData(null);
+            setIsLoading(false);
+            return;
+        }
+
         const normalizedCityName = cityName.trim();
         const cacheKey = normalizedCityName.toLowerCase();
 
@@ -167,10 +183,6 @@ const HomePage = () => {
     }, [fetchCoordinates]);
 
     useEffect(() => {
-
-    console.log("=== COMPROBACIÓN DE API KEY ===");
-    console.log("Valor actual:", import.meta.env.VITE_WEATHER_API_KEY);
-
     const normalizedTerm = debouncedSearchTerm.trim().toLowerCase();
     
     if (!normalizedTerm) {

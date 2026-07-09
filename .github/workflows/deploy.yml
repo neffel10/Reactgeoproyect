@@ -36,6 +36,8 @@ jobs:
         run: npm ci
 
       - name: Compilar Proyecto (Vite + Tailwind)
+        env:
+          VITE_WEATHER_API_KEY: ${{ secrets.VITE_WEATHER_API_KEY }}
         run: npm run build
 
       - name: Subir Artifact de Pages
