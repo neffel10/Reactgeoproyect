@@ -167,6 +167,10 @@ const HomePage = () => {
     }, [fetchCoordinates]);
 
     useEffect(() => {
+
+    console.log("=== COMPROBACIÓN DE API KEY ===");
+    console.log("Valor actual:", import.meta.env.VITE_WEATHER_API_KEY);
+
     const normalizedTerm = debouncedSearchTerm.trim().toLowerCase();
     
     if (!normalizedTerm) {
