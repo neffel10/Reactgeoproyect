@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 // ** API KEY reutilized **
 const API_KEY = import.meta.env.VITE_WEATHER_API_KEY;
 
-// Auxiliary function to handle API errors
+// Auxiliary function to handle API errors t
 const handleApiError = (response) => {
     if (response.status === 401) {
         throw new Error(`Error 401: Invalid API Key. Check your OWM key.`);
