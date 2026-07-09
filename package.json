@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "env-cmd vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "predeploy": "npm run build",
@@ -22,6 +22,7 @@
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^5.1.0",
+    "env-cmd": "^11.0.0",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
@@ -31,5 +32,6 @@
   },
   "overrides": {
     "vite": "npm:rolldown-vite@7.2.2"
-  },"homepage": "https://neffel10.github.io/Reactgeoproyect"
+  },
+  "homepage": "https://neffel10.github.io/Reactgeoproyect"
 }
