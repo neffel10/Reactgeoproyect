@@ -1,19 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { HeartCrack, Wind, Droplet, Gauge } from 'lucide-react';
+import { Trash2, Wind, Droplet, Gauge } from 'lucide-react';
+import { useTheme } from '../hooks/useTheme';
 
-// CLAVE API REUTILIZADA (Deberías considerar moverla a un hook o servicio)
-const API_KEY = 'acdd42a06d211c22f9c59ab85e650601'; 
+const API_KEY = import.meta.env.VITE_WEATHER_API_KEY;
 
-// Función auxiliar para obtener la URL del icono
 const getWeatherIconUrl = (iconCode) => {
     if (!iconCode) return null;
     return `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
 };
 
-// Función para manejar errores comunes de la API
 const handleApiError = (response) => {
     if (response.status === 401) {
-        throw new Error(`Error 401: Invalid API Key.`);
+        throw new Error('Error 401: Invalid API Key.');
     }
     if (!response.ok) {
         throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
@@ -25,6 +23,7 @@ const FavoriteCityCard = ({ city, onRemove, onCardClick }) => {
     const [weatherData, setWeatherData] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const { isDark } = useTheme();
 
     // useEffect para obtener el clima inmediatamente después de que el componente se monta
     useEffect(() => {
@@ -50,91 +49,148 @@ const FavoriteCityCard = ({ city, onRemove, onCardClick }) => {
         fetchWeather();
     }, [city]); // Ejecutar solo si el objeto city cambia
 
-    // Si ocurre un error, mostramos una tarjeta de error
     if (error) {
         return (
-            <div className="bg-red-50 p-6 rounded-xl shadow-lg border-l-4 border-red-500 relative">
-                <h3 className="text-xl font-bold text-red-700 mb-2">{city.name}, {city.country}</h3>
-                <p className="text-sm text-red-600">It was not possible to load the weather.</p>
+            <div className={`${
+                isDark
+                    ? 'bg-red-500/10 border-red-500/30 text-red-400'
+                    : 'bg-red-100 border-red-300 text-red-700'
+            } border rounded-2xl p-6 relative backdrop-blur-xl`}>
+                <h3 className="text-lg font-bold mb-2">{city.name}, {city.country}</h3>
+                <p className="text-sm">Unable to load weather data.</p>
                 <button 
                     onClick={onRemove}
-                    className="absolute top-3 right-3 text-red-400 hover:text-red-600 transition"
-                    title="Eliminar favorito"
+                    className={`absolute top-3 right-3 p-2 rounded-full transition ${
+                        isDark
+                            ? 'bg-red-500/20 hover:bg-red-500/30'
+                            : 'bg-red-200/50 hover:bg-red-300/50'
+                    }`}
+                    title="Remove from favorites"
                 >
-                    <HeartCrack className="w-5 h-5" />
+                    <Trash2 className={`w-5 h-5 ${
+                        isDark ? 'text-red-400' : 'text-red-700'
+                    }`} />
                 </button>
             </div>
         );
     }
     
-    // Indicador de carga
     if (isLoading) {
         return (
-            <div className="bg-white p-6 rounded-xl shadow-lg flex items-center justify-center h-48">
-                <p className="text-blue-500 animate-pulse">Loading...</p>
+            <div className={`${
+                isDark
+                    ? 'bg-white/10 border-white/10'
+                    : 'bg-slate-200/30 border-slate-300'
+            } backdrop-blur-xl p-6 rounded-2xl border flex items-center justify-center h-48`}>
+                <p className={`animate-pulse ${
+                    isDark ? 'text-sky-400' : 'text-sky-600'
+                }`}>Loading...</p>
             </div>
         );
     }
     
-    // Datos necesarios para renderizar
     const temp = weatherData?.main?.temp;
     const weatherDescription = weatherData?.weather?.[0]?.description;
     const weatherIcon = weatherData?.weather?.[0]?.icon;
 
-
     return (
         <div 
-            className="bg-white p-6 rounded-xl shadow-xl border-t-4 border-pink-500 relative cursor-pointer 
-                       transform transition duration-300 hover:scale-[1.03]"
+            className={`${
+                isDark
+                    ? 'bg-gradient-to-br from-sky-600/20 to-cyan-600/20 border-sky-400/30 hover:border-sky-400/50 hover:from-sky-600/30 hover:to-cyan-600/30'
+                    : 'bg-gradient-to-br from-sky-100/50 to-cyan-100/50 border-sky-200 hover:border-sky-300 hover:from-sky-100 hover:to-cyan-100'
+            } backdrop-blur-xl border rounded-2xl p-6 relative cursor-pointer transition-all duration-300 group`}
             onClick={onCardClick}
         >
-            {/* Botón de eliminar favorito */}
             <button
                 onClick={(e) => {
-                    e.stopPropagation(); // Evita que se active onCardClick
+                    e.stopPropagation();
                     onRemove();
                 }}
-                className="absolute top-3 right-3 p-1 rounded-full bg-white/70 backdrop-blur-sm shadow-md 
-                           transition duration-150 hover:bg-white z-10 text-pink-500 hover:text-red-500"
+                className={`absolute top-3 right-3 p-2 rounded-full border transition-all ${
+                    isDark
+                        ? 'bg-white/10 border-white/20 hover:bg-red-500/20 hover:border-red-500/30'
+                        : 'bg-slate-200/50 border-slate-300 hover:bg-red-200/50 hover:border-red-300'
+                }`}
                 title="Remove from favorites"
             >
-                <HeartCrack className="w-6 h-6 fill-pink-500" />
+                <Trash2 className={`w-5 h-5 group-hover:text-red-500 ${
+                    isDark ? 'text-slate-300' : 'text-slate-600'
+                }`} />
             </button>
 
-            <h3 className="text-2xl font-bold text-gray-800 mb-1">{city.name}, {city.country}</h3>
-            <p className="text-sm text-gray-500 mb-4">Actual Weather</p>
+            <h3 className={`text-xl font-bold mb-1 ${
+                isDark ? 'text-white' : 'text-slate-900'
+            }`}>{city.name}</h3>
+            <p className={`text-sm mb-4 ${
+                isDark ? 'text-slate-400' : 'text-slate-600'
+            }`}>{city.country}</p>
 
-            <div className="flex items-center justify-start space-x-4">
+            <div className={`flex items-center justify-between mb-4 pb-4 ${
+                isDark ? 'border-white/10' : 'border-slate-300'
+            } border-b`}>
                 {weatherIcon && (
                     <img 
                         src={getWeatherIconUrl(weatherIcon)} 
                         alt={weatherDescription} 
-                        className="w-12 h-12"
+                        className="w-14 h-14 filter drop-shadow-lg"
                     />
                 )}
-                <div className="text-left">
-                    <p className="text-4xl font-extrabold text-pink-600">
-                        {Math.round(temp)}°C
+                <div className="text-right">
+                    <p className={`text-4xl font-extrabold ${
+                        isDark ? 'text-cyan-300' : 'text-cyan-600'
+                    }`}>
+                        {Math.round(temp)}°
                     </p>
-                    <p className="text-md font-semibold text-gray-700 capitalize">
+                    <p className={`text-xs capitalize ${
+                        isDark ? 'text-slate-400' : 'text-slate-600'
+                    }`}>
                         {weatherDescription}
                     </p>
                 </div>
             </div>
             
-            {/* Detalles Rápidos */}
-            <div className="grid grid-cols-2 gap-2 mt-4 text-sm text-gray-600">
-                <div className="flex items-center">
-                    <Wind className="w-4 h-4 mr-2 text-blue-400" />
-                    {weatherData?.wind?.speed.toFixed(1)} m/s
+            <div className={`space-y-2 text-sm ${
+                isDark ? 'text-slate-300' : 'text-slate-700'
+            }`}>
+                <div className={`flex items-center justify-between rounded-lg p-2 px-3 ${
+                    isDark ? 'bg-white/5' : 'bg-slate-200/30'
+                }`}>
+                    <div className="flex items-center gap-2">
+                        <Wind className={`w-4 h-4 ${
+                            isDark ? 'text-cyan-400' : 'text-cyan-600'
+                        }`} />
+                        <span>Wind</span>
+                    </div>
+                    <span className={`font-semibold ${
+                        isDark ? 'text-cyan-300' : 'text-cyan-700'
+                    }`}>{weatherData?.wind?.speed.toFixed(1)} m/s</span>
                 </div>
-                <div className="flex items-center">
-                    <Droplet className="w-4 h-4 mr-2 text-blue-400" />
-                    {weatherData?.main?.humidity}%
+                <div className={`flex items-center justify-between rounded-lg p-2 px-3 ${
+                    isDark ? 'bg-white/5' : 'bg-slate-200/30'
+                }`}>
+                    <div className="flex items-center gap-2">
+                        <Droplet className={`w-4 h-4 ${
+                            isDark ? 'text-blue-400' : 'text-blue-600'
+                        }`} />
+                        <span>Humidity</span>
+                    </div>
+                    <span className={`font-semibold ${
+                        isDark ? 'text-blue-300' : 'text-blue-700'
+                    }`}>{weatherData?.main?.humidity}%</span>
                 </div>
-                <div className="flex items-center">
-                    <Gauge className="w-4 h-4 mr-2 text-blue-400" />
-                    {weatherData?.main?.pressure} hPa
+                <div className={`flex items-center justify-between rounded-lg p-2 px-3 ${
+                    isDark ? 'bg-white/5' : 'bg-slate-200/30'
+                }`}>
+                    <div className="flex items-center gap-2">
+                        <Gauge className={`w-4 h-4 ${
+                            isDark ? 'text-sky-400' : 'text-sky-600'
+                        }`} />
+                        <span>Pressure</span>
+                    </div>
+                    <span className={`font-semibold ${
+                        isDark ? 'text-sky-300' : 'text-sky-700'
+                    }`}>{weatherData?.main?.pressure} hPa</span>
                 </div>
             </div>
         </div>

@@ -55,22 +55,24 @@ button:focus-visible {
 }
 
 #cfooter {
-  background-color: #262626;
-  display: flex;
-  justify-content: center; 
-  margin-top: -4rem;
+  background: linear-gradient(to right, rgb(15, 23, 42), rgb(30, 41, 59));
+  border-top: 1px solid rgb(51, 65, 85);
+  margin-top: 3rem;
 }
 
-p#cfooter {
-  font-size: 1.5rem; 
-  font-weight: bold;
-  color: #ffffff;
-  padding: 1rem;
+#cfooter p {
+  font-size: 0.875rem;
+  color: rgb(148, 163, 184);
 }
 
 #cfooter a {
-  color: #EC4899 !important;
+  color: rgb(56, 189, 248);
   text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+#cfooter a:hover {
+  color: rgb(34, 211, 238);
 }
 
 @media (prefers-color-scheme: light) {

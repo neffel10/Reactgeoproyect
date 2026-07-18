@@ -2,8 +2,9 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Search from '../components/Search';
 import useFavorites from '../hooks/useFavorites';
-import { Heart } from 'lucide-react';
+import { useTheme } from '../hooks/useTheme';
 import { useDebounce } from '../hooks/useDebounce';
+import { Heart } from 'lucide-react';
 
 // ** API INSERTED **
 
@@ -11,6 +12,7 @@ const API_KEY = import.meta.env.VITE_WEATHER_API_KEY || '';
 
 const HomePage = () => {
     const navigate = useNavigate();
+    const { isDark } = useTheme();
 
     // 1. Favorites Hook 
     const { isFavorite, addFavorite, removeFavorite } = useFavorites();
@@ -237,121 +239,223 @@ const HomePage = () => {
     const isCurrentCityFavorite = cityData ? isFavorite(cityData.name) : false;
 
     return (
-        <div className="min-h-screen bg-blue-200 py-12 px-4 sm:px-6 lg:px-8 shadow-lg">
-            <div className="max-w-xl mx-auto bg-white pt-12 pl-8 pr-8 pb-12 rounded-2xl shadow-xl">
-                <h1 className="text-4xl font-extrabold text-pink-500 text-center mb-10">
-                    Weather & Advanced Geolocalization
-                </h1>
-                
-                {/* Navigation to Favorites Button */}
-                <div className="text-center mb-8">
-
-                <button
-                    onClick={() => navigate('/favorites')} 
-                    className="px-6 py-2 bg-pink-500 text-white-600 font-semibold rounded-lg shadow-md hover:bg-pink-200 transition duration-150 transform hover:scale-105 flex items-center mx-auto justify-center hover:text-pink-900"
-                >
-                    <Heart className="w-5 h-5 fill-pink-600" />
-                    See my Favorites
-                </button>   
-
+        <div className={`min-h-screen ${
+            isDark
+                ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900'
+                : 'bg-gradient-to-br from-slate-50 via-white to-slate-50'
+        } py-12 px-4 sm:px-6 lg:px-8`}>
+            <div className="max-w-2xl mx-auto">
+                {/* Header Section */}
+                <div className="text-center mb-12">
+                    <h1 className={`text-5xl sm:text-6xl font-extrabold mb-4 tracking-tight ${
+                        isDark ? 'text-white' : 'text-slate-900'
+                    }`}>
+                        Weather
+                        <span className={`block text-transparent bg-clip-text ${
+                            isDark
+                                ? 'bg-gradient-to-r from-sky-400 to-cyan-300'
+                                : 'bg-gradient-to-r from-sky-600 to-cyan-500'
+                        }`}>Explorer</span>
+                    </h1>
+                    <p className={`text-lg max-w-md mx-auto ${
+                        isDark ? 'text-slate-400' : 'text-slate-600'
+                    }`}>
+                        Discover real-time weather forecasts and detailed climate patterns for any city worldwide.
+                    </p>
                 </div>
-                
-                <Search
-                    searchTerm={searchTerm}
-                    onSearchTermChange={setSearchTerm}
-                    onSearchSubmit={handleSearchSubmit}
-                />
 
-                <div className="text-center p-6 bg-transparent rounded-xl">
-                    {isLoading && (
-                        // Loading Spinner and Message
-                        <div className="flex justify-center items-center space-x-2 text-blue-600">
-                            <svg className="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            <p className="font-medium">Getting data...</p>
-                        </div>
-                    )}
-
-                    {error && (
-                        // Error Message Display
-                        <div className="p-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded-md">
-                            <p className="font-bold">Search Failed</p>
-                            <p>{error}</p>
-                        </div>
-                    )}
-
-                    {/* ** Final Weather Result ** */}
-                    {cityData && currentForecast && !isLoading && (
-                        <div 
-                            className="bg-gradient-to-br from-blue-100 to-white p-8 rounded-lg shadow-2xl max-w-lg mx-auto border-t-4 border-blue-500 cursor-pointer 
-                                       transform transition duration-300 hover:scale-[1.05] hover:shadow-xl relative group" // Add 'relative group'
-                            // The main clic navigates to the city detail page, but the favorite button is absolute and stops propagation
-                            onClick={handleCardClick} 
+                {/* Main Card */}
+                <div className={`${
+                    isDark
+                        ? 'bg-white/10 border-white/10'
+                        : 'bg-slate-100/50 border-slate-200'
+                } backdrop-blur-xl rounded-3xl p-8 shadow-2xl border mb-8`}>
+                    {/* Navigation to Favorites */}
+                    <div className="flex justify-center mb-8">
+                        <button
+                            onClick={() => navigate('/favorites')}
+                            className={`inline-flex items-center gap-2 px-6 py-3 ${
+                                isDark
+                                    ? 'bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600'
+                                    : 'bg-gradient-to-r from-sky-600 to-cyan-600 hover:from-sky-700 hover:to-cyan-700'
+                            } text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105`}
                         >
-                            {/* Favorites Button (Absolute) */}
-                            <button
-                                className="absolute top-3 right-3 p-2 rounded-full bg-white/70 backdrop-blur-sm shadow-md 
-                                           transition duration-150 hover:bg-white z-10"
-                                onClick={(e) => {
-                                    e.stopPropagation(); // PREVENTS the click from navigating to the detail view
-                                    handleToggleFavorite();
-                                }}
-                                title={isCurrentCityFavorite ? "Delete from Favorites" : "Add to Favorites"}
+                            <Heart className="w-5 h-5" />
+                            My Favorites
+                        </button>
+                    </div>
+
+                    {/* Search Component */}
+                    <div className="mb-8">
+                        <Search
+                            searchTerm={searchTerm}
+                            onSearchTermChange={setSearchTerm}
+                            onSearchSubmit={handleSearchSubmit}
+                        />
+                    </div>
+
+                    {/* Results Section */}
+                    <div className="space-y-6">
+                        {isLoading && (
+                            <div className="flex flex-col items-center justify-center py-12">
+                                <div className={`flex items-center gap-3 ${
+                                    isDark ? 'text-slate-300' : 'text-slate-600'
+                                }`}>
+                                    <svg className="animate-spin h-6 w-6 text-sky-400" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4z" />
+                                    </svg>
+                                    <p className="text-lg font-medium">Loading forecast data...</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {error && (
+                            <div className={`${
+                                isDark
+                                    ? 'bg-red-500/10 border-red-500/50 text-red-300'
+                                    : 'bg-red-100 border-red-300 text-red-700'
+                            } border rounded-2xl p-4`}>
+                                <p className="font-semibold mb-1">Search Failed</p>
+                                <p className="text-sm">{error}</p>
+                            </div>
+                        )}
+
+                        {/* Weather Result Card */}
+                        {cityData && currentForecast && !isLoading && (
+                            <div
+                                className={`${
+                                    isDark
+                                        ? 'bg-gradient-to-br from-sky-600/20 to-cyan-600/20 border-sky-400/30 hover:border-sky-400/50 hover:from-sky-600/30 hover:to-cyan-600/30'
+                                        : 'bg-gradient-to-br from-sky-100/50 to-cyan-100/50 border-sky-200 hover:border-sky-300 hover:from-sky-100 hover:to-cyan-100'
+                                } border rounded-3xl p-8 cursor-pointer transition-all duration-300 group`}
+                                onClick={handleCardClick}
                             >
-                                {isCurrentCityFavorite ? (
-                                    <Heart className="w-6 h-6 text-pink-500 fill-pink-500" />
-                                ) : (
-                                    <Heart className="w-6 h-6 text-gray-400 group-hover:text-pink-500" />
-                                )}
-                            </button>
-                            
-                            <h2 className="text-4xl font-bold text-gray-800 mb-2">{cityData.name}, {cityData.country}</h2>
-                            <p className="text-lg text-gray-500 mb-6">Actual Weather (Clic for more details)</p>
-
-                            <div className="flex items-center justify-center space-x-6">
-                                {/* Icon and Temperature */}
-                                {weatherIcon && (
-                                    <div className={`rounded-full ${weatherIcon.endsWith('n') ? 'bg-blue-900/50' : 'bg-transparent'}`}>
-                                    <img 
-                                        src={getWeatherIconUrl(weatherIcon)} 
-                                        alt={weatherDescription} 
-                                        className="w-20 h-20"
-                                    />
+                                {/* Header with Title and Favorite Button */}
+                                <div className="flex items-start justify-between mb-8">
+                                    <div>
+                                        <h2 className={`text-4xl font-bold mb-1 ${
+                                            isDark ? 'text-white' : 'text-slate-900'
+                                        }`}>
+                                            {cityData.name}
+                                        </h2>
+                                        <p className={isDark ? 'text-sky-300' : 'text-sky-700'}>{cityData.country}</p>
                                     </div>
-                                )}
-                                <div className="text-left">
-                                    <p className="text-6xl font-extrabold text-blue-600">
-                                        {Math.round(temp)}°C
-                                    </p>
-                                    <p className="text-xl font-semibold text-gray-700 capitalize">
-                                        {weatherDescription}
-                                    </p>
+                                    <button
+                                        className={`p-3 rounded-full ${
+                                            isDark
+                                                ? 'bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20'
+                                                : 'bg-slate-200/50 border-slate-300 hover:bg-slate-300/50'
+                                        } border transition-all duration-200`}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleToggleFavorite();
+                                        }}
+                                        title={isCurrentCityFavorite ? "Remove from favorites" : "Add to favorites"}
+                                    >
+                                        {isCurrentCityFavorite ? (
+                                            <Heart className="w-6 h-6 text-red-400 fill-red-400" />
+                                        ) : (
+                                            <Heart className={`w-6 h-6 ${
+                                                isDark ? 'text-slate-400 group-hover:text-red-400' : 'text-slate-600 group-hover:text-red-500'
+                                            }`} />
+                                        )}
+                                    </button>
                                 </div>
-                            </div>
 
-                            {/* Additional Details */}
-                            <div className="grid grid-cols-3 gap-4 mt-8 pt-4 border-t border-gray-200 text-gray-700">
-                                <div>
-                                    <p className="text-sm font-medium">Wind</p>
-                                    <p className="font-bold">{windSpeed.toFixed(1)} m/s</p>
+                                {/* Temperature Section */}
+                                <div className={`flex items-center gap-8 mb-8 pb-8 ${
+                                    isDark ? 'border-white/10' : 'border-slate-300'
+                                } border-b`}>
+                                    {weatherIcon && (
+                                        <div className="flex-shrink-0">
+                                            <img
+                                                src={getWeatherIconUrl(weatherIcon)}
+                                                alt={weatherDescription}
+                                                className="w-24 h-24 filter drop-shadow-lg"
+                                            />
+                                        </div>
+                                    )}
+                                    <div>
+                                        <p className={`text-7xl font-extrabold mb-2 ${
+                                            isDark ? 'text-white' : 'text-slate-900'
+                                        }`}>
+                                            {Math.round(temp)}°
+                                        </p>
+                                        <p className={`text-xl capitalize font-semibold ${
+                                            isDark ? 'text-sky-200' : 'text-sky-700'
+                                        }`}>
+                                            {weatherDescription}
+                                        </p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="text-sm font-medium">Humidity</p>
-                                    <p className="font-bold">{humidity}%</p>
+
+                                {/* Details Grid */}
+                                <div className="grid grid-cols-3 gap-4 mb-6">
+                                    <div className={`${
+                                        isDark ? 'bg-white/5 border-white/10' : 'bg-slate-200/50 border-slate-300'
+                                    } rounded-2xl p-4 border`}>
+                                        <p className={`text-sm font-medium mb-2 ${
+                                            isDark ? 'text-slate-400' : 'text-slate-600'
+                                        }`}>Wind Speed</p>
+                                        <p className={`text-2xl font-bold ${
+                                            isDark ? 'text-cyan-300' : 'text-cyan-700'
+                                        }`}>{windSpeed.toFixed(1)}</p>
+                                        <p className={`text-xs mt-1 ${
+                                            isDark ? 'text-slate-500' : 'text-slate-500'
+                                        }`}>m/s</p>
+                                    </div>
+                                    <div className={`${
+                                        isDark ? 'bg-white/5 border-white/10' : 'bg-slate-200/50 border-slate-300'
+                                    } rounded-2xl p-4 border`}>
+                                        <p className={`text-sm font-medium mb-2 ${
+                                            isDark ? 'text-slate-400' : 'text-slate-600'
+                                        }`}>Humidity</p>
+                                        <p className={`text-2xl font-bold ${
+                                            isDark ? 'text-blue-300' : 'text-blue-700'
+                                        }`}>{humidity}%</p>
+                                    </div>
+                                    <div className={`${
+                                        isDark ? 'bg-white/5 border-white/10' : 'bg-slate-200/50 border-slate-300'
+                                    } rounded-2xl p-4 border`}>
+                                        <p className={`text-sm font-medium mb-2 ${
+                                            isDark ? 'text-slate-400' : 'text-slate-600'
+                                        }`}>Pressure</p>
+                                        <p className={`text-2xl font-bold ${
+                                            isDark ? 'text-sky-300' : 'text-sky-700'
+                                        }`}>{pressure}</p>
+                                        <p className={`text-xs mt-1 ${
+                                            isDark ? 'text-slate-500' : 'text-slate-500'
+                                        }`}>hPa</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="text-sm font-medium">Pressure</p>
-                                    <p className="font-bold">{pressure} hPa</p>
+
+                                {/* CTA */}
+                                <div className={`${
+                                    isDark
+                                        ? 'bg-gradient-to-r from-sky-500/10 to-cyan-500/10 border-sky-400/30'
+                                        : 'bg-gradient-to-r from-sky-100 to-cyan-100 border-sky-300'
+                                } border rounded-2xl p-4 text-center`}>
+                                    <p className={`font-medium ${
+                                        isDark
+                                            ? 'text-slate-300 group-hover:text-sky-300'
+                                            : 'text-slate-700 group-hover:text-sky-700'
+                                    } transition-colors`}>
+                                        Tap to explore 5-day forecast & detailed analytics
+                                    </p>
                                 </div>
                             </div>
-                            
-                            <p className="mt-8 text-md text-gray-500 border-t pt-4">                    
-                                Click on the card to see the weather for the next 5 days.
-                            </p>
-                        </div>
-                    )}
+                        )}
+
+                        {/* Empty State */}
+                        {!cityData && !isLoading && !error && (
+                            <div className="text-center py-12">
+                                <p className={`text-lg ${
+                                    isDark ? 'text-slate-400' : 'text-slate-600'
+                                }`}>Search for a city to get started</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
