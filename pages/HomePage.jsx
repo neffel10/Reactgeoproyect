@@ -81,7 +81,7 @@ const HomePage = () => {
             return cachedWeatherData;
         }
 
-        const weatherUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&lang=es&appid=${API_KEY}`;
+        const weatherUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&lang=en&appid=${API_KEY}`;
 
         try {
             const response = await fetch(weatherUrl);
@@ -93,8 +93,8 @@ const HomePage = () => {
             return data;
 
         } catch (err) {
-            console.error("Error al obtener el pronóstico:", err);
-            setError(`Fallo al obtener el clima: ${err.message}`);
+            console.error("Error at getting weather data:", err);
+            setError(`Failed to get weather data for ${cityName}: ${err.message}`);
             setWeatherData(null);
             setCityData(null);
             return null;
@@ -104,7 +104,7 @@ const HomePage = () => {
     // 🌍 NUEVA FUNCIÓN: Obtener ubicación GPS e invocar la API del Clima directamente
     const handleGetCurrentLocation = useCallback(() => {
         if (!navigator.geolocation) {
-            setError("Tu navegador no soporta geolocalización.");
+            setError("Your browser doesnt support geolocation.");
             return;
         }
 
@@ -117,7 +117,7 @@ const HomePage = () => {
                 
                 // OpenWeather nos permite hacer "geocodificación inversa" opcional, 
                 // pero para pintar el nombre rápido podemos ponerle un marcador o hacer fetch directo
-                const currentCityName = "Tu ubicación"; 
+                const currentCityName = "Your Location"; 
                 
                 const newCityData = {
                     lat: latitude,
@@ -131,8 +131,8 @@ const HomePage = () => {
                 setIsLoading(false);
             },
             (err) => {
-                console.error("Error de geolocalización:", err);
-                setError("No se pudo acceder a tu ubicación. Verifica los permisos de tu navegador.");
+                console.error("Geolocation Error:", err);
+                setError("We cannot access to your location. Verify your settings.");
                 setIsLoading(false);
             }
         );
@@ -160,7 +160,7 @@ const HomePage = () => {
             return;
         }
 
-        // Reiniciar estados para la nueva búsqueda
+        // Reset search States
         setIsLoading(true);
         setError(null);
         setCityData(null);
@@ -273,52 +273,58 @@ useEffect(() => {
     if (cityData || searchTerm) return;
 
     if (!navigator.geolocation) {
-        console.warn("Tu navegador no soporta geolocalización.");
+        console.warn("Your browser doesnt support geolocation.");
         return;
     }
 
     setIsLoading(true);
 
-    navigator.geolocation.getCurrentPosition(
-        async (position) => {
-            const { latitude, longitude } = position.coords;
+   navigator.geolocation.getCurrentPosition(
+    async (position) => {
+        const { latitude, longitude } = position.coords;
+        
+        try {
+            // FASE 1: Obtener el nombre REAL y oficial de la ciudad por coordenadas
+            const reverseGeoUrl = `https://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=1&appid=${API_KEY}`;
+            const geoResponse = await fetch(reverseGeoUrl);
             
-            // Para que la interfaz se vea premium, usaremos las coordenadas de Hermosillo/tu zona
-            // OpenWeather nos devolverá el nombre real de tu ciudad en la respuesta del forecast
-            const currentCityName = "Tu ubicación"; 
-            
+            let officialCityName = "Your location";
+            let countryCode = "GPS";
+
+            if (geoResponse.ok) {
+                const geoData = await geoResponse.json();
+                if (geoData && geoData.length > 0) {
+                    // OpenWeather Geo siempre devuelve el nombre de la alcaldía/ciudad principal, no la colonia
+                    officialCityName = geoData[0].name; // Ej: "Hermosillo"
+                    countryCode = geoData[0].country;  // Ej: "MX"
+                }
+            }
+
+            // FASE 2: Seteamos el estado con la información geográfica realizada de forma automática
             const newCityData = {
                 lat: latitude,
                 lon: longitude,
-                name: currentCityName,
-                country: "GPS"
+                name: officialCityName,
+                country: countryCode
             };
-
             setCityData(newCityData);
-            
-            // Disparamos la API con tus coordenadas
-            const weatherResult = await fetchWeather(latitude, longitude, currentCityName);
-            
-            // Opcional: Si quieres sobreescribir "Tu ubicación" con el nombre real de la ciudad 
-            // que devuelve la API de OpenWeatherMap en su propiedad data.city.name:
-            if (weatherResult && weatherResult.city) {
-                setCityData({
-                    lat: latitude,
-                    lon: longitude,
-                    name: weatherResult.city.name,
-                    country: weatherResult.city.country
-                });
-            }
-            
-            setIsLoading(false);
-        },
-        (err) => {
-            console.warn("El usuario denegó o bloqueó el permiso de ubicación:", err.message);
-            // No seteamos un error ruidoso en pantalla aquí, para que si el usuario rechaza el permiso,
-            // la app simplemente se quede limpia esperando a que use el buscador de forma manual.
+
+            // FASE 3: Consultar el clima usando el nombre limpio
+            await fetchWeather(latitude, longitude, officialCityName);
+
+        } catch (err) {
+            console.error("Error en el proceso de geolocalización automática:", err);
+            // Fallback por si la red falla, para que al menos intente pintar el clima
+            await fetchWeather(latitude, longitude, "Your location");
+        } finally {
             setIsLoading(false);
         }
-    );
+    },
+    (err) => {
+        console.warn("El usuario denegó el acceso a la ubicación:", err.message);
+        setIsLoading(false);
+    }
+);
 }, [fetchWeather, cityData, searchTerm]); // Añadimos las dependencias de control
 
     return (
@@ -476,45 +482,56 @@ useEffect(() => {
                                     </div>
                                 </div>
 
-                                {/* Details Grid */}
-                                <div className="grid grid-cols-3 gap-4 mb-6">
-                                    <div className={`${
-                                        isDark ? 'bg-white/5 border-white/10' : 'bg-slate-200/50 border-slate-300'
-                                    } rounded-2xl p-4 border`}>
-                                        <p className={`text-sm font-medium mb-2 ${
-                                            isDark ? 'text-slate-400' : 'text-slate-600'
-                                        }`}>Wind Speed</p>
-                                        <p className={`text-2xl font-bold ${
-                                            isDark ? 'text-cyan-300' : 'text-cyan-700'
-                                        }`}>{windSpeed.toFixed(1)}</p>
-                                        <p className={`text-xs mt-1 ${
-                                            isDark ? 'text-slate-500' : 'text-slate-500'
-                                        }`}>m/s</p>
-                                    </div>
-                                    <div className={`${
-                                        isDark ? 'bg-white/5 border-white/10' : 'bg-slate-200/50 border-slate-300'
-                                    } rounded-2xl p-4 border`}>
-                                        <p className={`text-sm font-medium mb-2 ${
-                                            isDark ? 'text-slate-400' : 'text-slate-600'
-                                        }`}>Humidity</p>
-                                        <p className={`text-2xl font-bold ${
-                                            isDark ? 'text-blue-300' : 'text-blue-700'
-                                        }`}>{humidity}%</p>
-                                    </div>
-                                    <div className={`${
-                                        isDark ? 'bg-white/5 border-white/10' : 'bg-slate-200/50 border-slate-300'
-                                    } rounded-2xl p-4 border`}>
-                                        <p className={`text-sm font-medium mb-2 ${
-                                            isDark ? 'text-slate-400' : 'text-slate-600'
-                                        }`}>Pressure</p>
-                                        <p className={`text-2xl font-bold ${
-                                            isDark ? 'text-sky-300' : 'text-sky-700'
-                                        }`}>{pressure}</p>
-                                        <p className={`text-xs mt-1 ${
-                                            isDark ? 'text-slate-500' : 'text-slate-500'
-                                        }`}>hPa</p>
-                                    </div>
-                                </div>
+                                {/* Details Grid: 1 columna en móvil, 3 columnas a partir de pantallas 'sm' */}
+<div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+    
+    {/* Wind Speed Card */}
+    <div className={`flex sm:flex-col items-center justify-between sm:justify-center rounded-2xl p-4 border transition-all ${
+        isDark ? 'bg-white/5 border-white/10' : 'bg-slate-200/50 border-slate-300'
+    }`}>
+        <p className={`text-sm font-medium sm:mb-1 ${
+            isDark ? 'text-slate-400' : 'text-slate-600'
+        }`}>Wind Speed</p>
+        <div className="flex items-baseline gap-1 sm:flex-row sm:justify-center">
+            <p className={`text-xl sm:text-2xl font-bold ${
+                isDark ? 'text-cyan-300' : 'text-cyan-700'
+            }`}>{windSpeed.toFixed(1)}</p>
+            <span className={`text-xs ${
+                isDark ? 'text-slate-500' : 'text-slate-500'
+            }`}>m/s</span>
+        </div>
+    </div>
+
+    {/* Humidity Card */}
+    <div className={`flex sm:flex-col items-center justify-between sm:justify-center rounded-2xl p-4 border transition-all ${
+        isDark ? 'bg-white/5 border-white/10' : 'bg-slate-200/50 border-slate-300'
+    }`}>
+        <p className={`text-sm font-medium sm:mb-1 ${
+            isDark ? 'text-slate-400' : 'text-slate-600'
+        }`}>Humidity</p>
+        <p className={`text-xl sm:text-2xl font-bold ${
+            isDark ? 'text-blue-300' : 'text-blue-700'
+        }`}>{humidity}%</p>
+    </div>
+
+    {/* Pressure Card */}
+    <div className={`flex sm:flex-col items-center justify-between sm:justify-center rounded-2xl p-4 border transition-all ${
+        isDark ? 'bg-white/5 border-white/10' : 'bg-slate-200/50 border-slate-300'
+    }`}>
+        <p className={`text-sm font-medium sm:mb-1 ${
+            isDark ? 'text-slate-400' : 'text-slate-600'
+        }`}>Pressure</p>
+        <div className="flex items-baseline gap-1 sm:flex-row sm:justify-center">
+            <p className={`text-xl sm:text-2xl font-bold ${
+                isDark ? 'text-sky-300' : 'text-sky-700'
+            }`}>{pressure}</p>
+            <span className={`text-xs ${
+                isDark ? 'text-slate-500' : 'text-slate-500'
+            }`}>hPa</span>
+        </div>
+    </div>
+
+</div>
 
                                 {/* CTA */}
                                 <div className={`${
