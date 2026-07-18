@@ -4,7 +4,7 @@ import Search from '../components/Search';
 import useFavorites from '../hooks/useFavorites';
 import { useTheme } from '../hooks/useTheme';
 import { useDebounce } from '../hooks/useDebounce';
-import { Heart } from 'lucide-react';
+import { Heart, MapPin } from 'lucide-react'; 
 
 // ** API INSERTED **
 
@@ -73,14 +73,6 @@ const HomePage = () => {
 
     // --- FUNCTION PHASE 2: Get the Weather using Coordinates ---
     const fetchWeather = useCallback(async (lat, lon, cityName) => {
-        if (!API_KEY) {
-            setError('La API key de OpenWeather no está configurada. Añádela como secreto en GitHub y vuelve a desplegar.');
-            setWeatherData(null);
-            setCityData(null);
-            setIsLoading(false);
-            return null;
-        }
-
         const cacheKey = `${cityName}-${lat}-${lon}`.toLowerCase();
         const cachedWeatherData = cacheRef.current[cacheKey];
 
@@ -101,13 +93,50 @@ const HomePage = () => {
             return data;
 
         } catch (err) {
-            console.error("Error fetching weather data:", err);
-            setError(`Failed to fetch weather data: ${err.message}`);
+            console.error("Error al obtener el pronóstico:", err);
+            setError(`Fallo al obtener el clima: ${err.message}`);
             setWeatherData(null);
             setCityData(null);
             return null;
         }
     }, []);
+
+    // 🌍 NUEVA FUNCIÓN: Obtener ubicación GPS e invocar la API del Clima directamente
+    const handleGetCurrentLocation = useCallback(() => {
+        if (!navigator.geolocation) {
+            setError("Tu navegador no soporta geolocalización.");
+            return;
+        }
+
+        setIsLoading(true);
+        setError(null);
+
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const { latitude, longitude } = position.coords;
+                
+                // OpenWeather nos permite hacer "geocodificación inversa" opcional, 
+                // pero para pintar el nombre rápido podemos ponerle un marcador o hacer fetch directo
+                const currentCityName = "Tu ubicación"; 
+                
+                const newCityData = {
+                    lat: latitude,
+                    lon: longitude,
+                    name: currentCityName,
+                    country: "GPS"
+                };
+
+                setCityData(newCityData);
+                await fetchWeather(latitude, longitude, currentCityName);
+                setIsLoading(false);
+            },
+            (err) => {
+                console.error("Error de geolocalización:", err);
+                setError("No se pudo acceder a tu ubicación. Verifica los permisos de tu navegador.");
+                setIsLoading(false);
+            }
+        );
+    }, [fetchWeather]);
 
     // --- FUNCTION PHASE 1: Get Coordinates and then the Weather ---
     const fetchCoordinates = useCallback(async (cityName) => {
@@ -238,6 +267,60 @@ const HomePage = () => {
     // Determining if the current city is a favorite to show the correct icon
     const isCurrentCityFavorite = cityData ? isFavorite(cityData.name) : false;
 
+    // 🌍 Efecto para disparar la geolocalización automáticamente al abrir la app
+useEffect(() => {
+    // Si ya hay datos cargados previamente o el usuario ya escribió algo en el input, no interrumpimos
+    if (cityData || searchTerm) return;
+
+    if (!navigator.geolocation) {
+        console.warn("Tu navegador no soporta geolocalización.");
+        return;
+    }
+
+    setIsLoading(true);
+
+    navigator.geolocation.getCurrentPosition(
+        async (position) => {
+            const { latitude, longitude } = position.coords;
+            
+            // Para que la interfaz se vea premium, usaremos las coordenadas de Hermosillo/tu zona
+            // OpenWeather nos devolverá el nombre real de tu ciudad en la respuesta del forecast
+            const currentCityName = "Tu ubicación"; 
+            
+            const newCityData = {
+                lat: latitude,
+                lon: longitude,
+                name: currentCityName,
+                country: "GPS"
+            };
+
+            setCityData(newCityData);
+            
+            // Disparamos la API con tus coordenadas
+            const weatherResult = await fetchWeather(latitude, longitude, currentCityName);
+            
+            // Opcional: Si quieres sobreescribir "Tu ubicación" con el nombre real de la ciudad 
+            // que devuelve la API de OpenWeatherMap en su propiedad data.city.name:
+            if (weatherResult && weatherResult.city) {
+                setCityData({
+                    lat: latitude,
+                    lon: longitude,
+                    name: weatherResult.city.name,
+                    country: weatherResult.city.country
+                });
+            }
+            
+            setIsLoading(false);
+        },
+        (err) => {
+            console.warn("El usuario denegó o bloqueó el permiso de ubicación:", err.message);
+            // No seteamos un error ruidoso en pantalla aquí, para que si el usuario rechaza el permiso,
+            // la app simplemente se quede limpia esperando a que use el buscador de forma manual.
+            setIsLoading(false);
+        }
+    );
+}, [fetchWeather, cityData, searchTerm]); // Añadimos las dependencias de control
+
     return (
         <div className={`min-h-screen ${
             isDark
@@ -285,14 +368,17 @@ const HomePage = () => {
                         </button>
                     </div>
 
-                    {/* Search Component */}
-                    <div className="mb-8">
-                        <Search
-                            searchTerm={searchTerm}
-                            onSearchTermChange={setSearchTerm}
-                            onSearchSubmit={handleSearchSubmit}
-                        />
-                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center gap-2 mb-6">
+    <div className="flex-1 w-full">
+        <Search
+            searchTerm={searchTerm}
+            onSearchTermChange={setSearchTerm}
+            onSearchSubmit={handleSearchSubmit}
+        />
+    </div>
+    
+</div>
 
                     {/* Results Section */}
                     <div className="space-y-6">
